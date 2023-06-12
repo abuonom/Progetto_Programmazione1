@@ -1,0 +1,469 @@
+#include <stdio.h><br>
+#include <stdlib.h><br>
+#include <time.h><br>
+#include <conio.h>br>
+
+/*
+La traccia richiede di sviluppare un algoritmo per la risoluzione di un labirinto 15x15 con delle mura sia esterne che interne<br> 
+da parte di un robot, che gestisco tramite una variabile globale di tipo struttura contenente:<br>
+int r per l'indice di riga<br>
+int c per l'indice di colonna<br>
+seguendo due movimenti, che chiamiamo rispettivamente<br> 
+ONE_MOV e BET_MOV, che vengono selezionati rispettivamente il 30% ed il 70% delle volte.<br>
+
+ONE_MOV ci permette di spostare il robot nelle quattro direzioni (avanti, indietro, sinistra, destra), se libere,<br>
+se ci sono più direzioni libere, la direzione viene scelta in modo randomico.<br>
+
+BET_MOV ci permette invece, di selezionare la direzione nella quale compiere lo spostamento, mediante il confronto tra i percorsi più lunghi, come nel<br>
+precedente movimento, se ci sono percorsi della stessa lunghezza, la direzione viene scelta casualmete.<br>
+
+Infine abbiamo all'interno del labirinto, 10 botole, suddivise in 5 che teletrasportano in una posizione casuale il robot, denominate RND_HOLE<br>
+e 5 che sanciscono la fine della partita denominate END_HOLE.<br>
+
+Il programma sarà strutturato in questo modo:<br>
+
+L'utente si trova in un menu' innestato in un ciclo do-while, dove, a seconda del numero inserito, vengono effettuate<br>
+diverse operazioni:<br>
+1)Vengono generati il labirinto ed il robot<br>
+2)Si avvia il movimento del robot<br>
+3)Uscita<br>
+In seguito ad un numero indefinito di spostamenti:<br>
+Se il robot finisce su un ? viene riposizionato casualmente<br>
+Se il robot finisce su una X il robot esplode<br>
+Se il robot riesce ad uscire dal labirinto vince<br>
+
+*/<br>
+
+struct robot{   //STRUTTURA CREATA PER LE CORDINATE PER LA DICHIARAZIONE DEL ROBOT<br>
+int r;<br>
+int c;<br>
+};<br>
+
+/*<br>
+TUTTE LE PROCEDURE HANNO COME UNICO INPUT LA MATRICE CHE GESTISCE IL LABIRINTO<br>
+*/<br>
+
+void gen_L(char a[][100]);               // FUNZIONE PRINCIPALE DELLA GENERAZIONE DEL LABIRINTO<br>
+void gen_wall(char a[][100]);            // GENERA I MURI INTERNI AL LABIRINTO<br>
+void gen_exit(char a[][100]);            // GENERA LE USCITE <br>
+void gen_ost(char a[][100]);             // GENERA GLI OSTACOLI (RANDOM HOLE E BLACK HOLE)<br>
+void gen_rob(char a[][100]);             // GENERA IL ROBOT E AGGIORNA IL ROBOT DURANTE GLI SPOSTAMENTI<br>
+void end_hole(char a[][100]);            // GESTIONE BLACK HOLE<br>
+void rnd_hole(char a[][100]);            // GESTIONE RANDOM HOLE <br>
+void win_game(char a[][100]);		   	 // GESTIONE VITTORIA<br>
+
+
+void cho_mov(char a[][100]);             // SCEGLIE IL MOVIMENTO DA EFFETTUARE <br>
+void bet_mov(char a[][100]);             // MOVIMENTO SEGUENDO IL PERCOSO PIU' LUNGO<br>
+void one_mov(char a[][100]);             // MOVIMENTO CASUALE IN UNA DELLE 4 DIREZIONI CONSENTITE<br> 
+
+
+void partita (char a[][100]);            // FUNZIONE PER AVVIARE LA PARTITA<br>
+
+
+struct robot B;                   	     //VARIABILE ROBOT<br>
+int gameover=0;                   	     //CONTROLLO GAMEOVER<br>
+int win=0;                        		 //CONTROLLO WIN<br>
+
+
+
+int main(){<br>
+srand((unsigned) time(0));               //Unico richiamo alla funzione random utilizzata in tutte le funzioni per la generazione degli elementi<br>
+char L[100][100];                        //Matrice 100x100 per la generazione del labirinto, ho preferito lavorare con una 100x100 per permettere al robot di tendere verso l'uscita utilizzando il bet_mov <br>
+partita(L);<br>
+return 0;<br>
+}<br>
+
+/* Procedura che gestisce gli input dell'utente tramite uno switch e controlla ad ogni esecuzione di un movimento se la partita è stata vinta o persa<br>
+   utilizzando le due variabili globali win e gameover, come si nota nel codice, ho utlizzato anche il comando system("cls") per evitare di stampare a schermo<br>
+   la mappa di gioco per ogni movimento eseguito, e per simulare un movimento più fluido<br>
+ */<br>
+void partita (char a[][100]){ <br>
+int uscita=0;								 //USCITA CON PRESSIONE TASTO <br> 
+char choice; <br>
+printf("LEGGENDA \nROBOT:%c\nBOTOLA:%c\nBUCO NERO:%c\nMURO:%c\n",'R',63,88,'#'); <br>
+while(gameover == 0 && win == 0 && uscita == 0){                          //Ciclo while per la gestione delle varie variabili che potrebbero far finire la partita<br>
+        printf("\nCOMANDI:\n1)Creazione mappa\n2)Movimento\n3)Uscita\nINPUT:");<br>
+        choice=getch();<br>
+switch (choice) {<br>
+  case '1' :                                            //INPUT 1: Generazione labirinto, da la possibilità anche di riavviare la partita<br>
+            gen_L(a);<br>
+            stampa_L(a);<br>
+            break;<br>
+  case '2' :                                            //INPUT 2: Permette il movimento del robot<br>
+            system("cls");<br>
+			cho_mov(a);<br>
+            stampa_L(a);<br>
+            break;<br>
+  case '3':                                             //INPUT 3: Uscita prematura dal gioco<br>
+  			uscita=1;<br>
+            break;<br>
+            
+  default : printf("!!!!INSERIRE UN NUMERO DA 1 A 3!!!!");<br>
+			   }<br>
+							  }<br>
+if(gameover == 1){<br>
+					system("cls");<br>
+					printf("BB-8 E' ESPLOSO ");<br>
+				 }<br>
+if(win == 1){<br>
+					system("cls");<br>
+					printf("BB-8 E' USCITO DAL LABIRINTO, EVVAI'");<br>
+				 }<br>
+if(uscita == 1){<br>
+					printf("USCITA DAL GIOCO");<br>
+				 }<br>
+}<br>
+
+/*<br>
+	Procedura principale per la generazione del labirinto,<br>
+	si occupa di generare il labirinto privo di ostacoli, attraverso dei cicli for ed un if<br>
+	per generare i muri di confine del labirinto<br>
+	e richiama le funzioni per la creazione degli ostacoli,<br> 
+	modificando i valori massimi contenuti nell'IF, si può cambiare la dimensione del labirinto<br>
+*/<br>
+void gen_L(char a[][100]){<br>
+int i,j;<br>
+for (i=0;i<=16;i++){<br>
+                    for (j=0;j<=16;j++){<br>
+                                        if(((i==0)||(i==15))||((j==0)||(j==15))){<br>
+                                                             a[i][j]='#';<br>
+                                                           						}else{<br>
+                                                                                       a[i][j]=' ';<br>
+                                                                                     }<br>
+                                     }<br>
+                  }<br>
+gen_wall(a);<br>
+gen_exit(a);<br>
+gen_ost(a);<br>
+gen_rob(a);<br>
+                            }<br>
+                            
+/*<br>
+Procedura per la stampa del labirinto<br>
+*/<br>
+void stampa_L(char a[100][100]){<br>
+int i,j;<br>
+for (i=0;i<16;i++){<br>
+    				printf("\n");<br>
+    				for (j=0;j<16;j++){<br>
+                        	  			printf(" %c ", a[i][j]);<br>
+                      				  }<br>
+				  }<br>
+}<br>
+
+/*<br>
+Procedura per la generazione casuale dei muri presenti internamente al labirinto, viene richiamata la funzione rand<br>
+per determinare le cordinate di riga e colonna dalle quali far partite i muri.<br>
+Ho utilizzato una variabile denominata k, da sommare alla variabile indice di riga o colonna tramite alcuni cicli for in base all'orientamento del muro<br>
+*/<br>
+              
+void gen_wall(char a[][100]){<br>
+int i,j,k;<br>
+//MURO 1 DI 5 CASELLE VERTICALI<br>
+i=1+rand()%14;<br>
+j=1+rand()%14;<br>
+for(k=0;k<5;k++){<br>
+    				a[i][j+k]='#';<br>
+				}<br>
+				
+//MURO 2 DI 8 CASELLE VERTICALI<br>
+i=1+rand()%14;<br>
+j=1+rand()%14;<br>
+for(k=0;k<8;k++){<br>
+    			  a[i+k][j]='#';<br>
+				 }<br>
+				 
+//MURO 3 DI 8 CASELLE ORIZZONTALI<br>
+i=1+rand()%14;<br>
+j=1+rand()%14;<br>
+for(k=0;k<8;k++){<br>
+    				a[i][j+k]='#';<br>
+				  }<br>
+				  
+//MURO 4 DI 3 CASELLE ORIZZONTALI<br>
+i=1+rand()%14;<br>
+j=1+rand()%14;<br>
+for(k=0;k<3;k++){<br>
+    				a[i+k][j]='#';<br>
+				   }<br>
+
+}<br>
+/*
+Procedura per la generazione dell'uscita del labirinto, prima mediante la funzione rand, sceglie la parete sulla quale posizionare l'uscita,<br>
+si può notare che nella funzione l'indice massimo che si può generare è 12, per eliminare la possibilità di avere uscite inutilizzabili negli angoli<br>
+*/                      
+void gen_exit(char a[][100]){<br>
+    int i,j,k;<br>
+  i=1+rand()%4;<br>
+  switch (i) {<br>
+  case 1 :                      //MURO SUPERIORE<br>
+            j=1+rand()%12;<br>
+            for(k=0;k<3;k++){<br>
+            				 a[0][j+k]=' ';<br>
+        		 			}<br>
+			break;<br>
+  case 2 :						//MURO SINISTRO<br>
+            j=1+rand()%12;<br>
+            for(k=0;k<3;k++){<br>
+            				 a[j+k][0]=' ';<br>
+        		 			}<br>
+            break;<br>
+  case 3:   					//MURO INFERIORE<br>
+  		    j=1+rand()%12;<br>
+            for(k=0;k<3;k++){<br>
+            				 a[15][j+k]=' ';<br>
+        		 			}<br>
+            break;<br>
+            
+  case 4:						//MURO DESTRO<br>
+  	        j=1+rand()%12;<br>
+            for(k=0;k<3;k++){<br>
+            				 a[j+k][15]=' ';<br>
+        		 			}<br>
+			break;<br>
+            
+  default : printf("ERRORE");<br>
+			}<br>
+}<br>
+
+/*<br>
+Procedura per la generazione delle botole RND_HOLE e END_HOLE, tramite la funzione rand genero le diverse cordinate per le diverse botole,<br> 
+che potendo essere generate solo nelle caselle "vuote" non consente alle botole di essere generate o nelle stesse posizioni, oppure al posto delle mura<br>
+*/<br>
+void gen_ost(char a[][100]){<br>
+int i=0,j=0,cont=0;<br>
+while(cont<5){                     //GENERAZIONE BOTOLE RANDOM<br>
+
+                i=1+rand()%15;<br>
+                j=1+rand()%15;<br>
+                if(a[i][j]==' '){<br>
+								 cont++;<br>
+                                 a[i][j]='?';<br>
+                                }<br>
+              }<br>
+i=0;<br>
+j=0;<br>
+cont=0;<br>
+while(cont<5){                   //GENERAZIONE BUCHI NERI<br>
+                i=1+rand()%15;<br>
+                j=1+rand()%15;<br>
+                if(a[i][j]==' '){<br>
+                                 cont++;<br>
+                                 a[i][j]='X';<br>
+                                }<br>
+              }<br>
+}<br>
+
+/*<br>
+Procedura per la generazione iniziale del robot all'interno del labirinto, genera tramite la funzione rand le cordinate del robot<br>
+*/<br>
+void gen_rob(char a[][100]){<br>
+	B.r=1+rand()%14;<br>
+    B.c=1+rand()%14;<br>
+    a[B.r][B.c]='R';<br>
+}<br>
+
+/*<br>
+Procedura che stampa il robot all'interno del labitinto andando a sostituire al carattere contenuto nella casella, il carattere rappresentativo del robot<br>
+*/<br>
+void stampa_rob(char a[][100]){<br>
+    a[B.r][B.c]='R';<br>
+}<br>
+
+/*<br>
+Procedura che ha il compito, di scegliere quale movimento effettuare e richiamarne la rispettiva funzione, tramite un random da 1 a 10 e due if<br>
+genero le percentuali di esecuzioni delle procedure<br>
+*/<br>
+void cho_mov(char a[][100]){<br>
+int i;<br>
+i=1+rand()%10;<br>
+if(i<=7){<br>
+         printf("BET_MOV");<br>
+         bet_mov(a);<br>
+        }else{<br>
+              printf("ONE_MOV");<br>
+              one_mov(a);<br>
+             }<br>
+                            }<br>
+                                        
+
+/*<br>
+Procedura relativa al BET_MOV, attraverso dei cicli while, viene contato il percorso di ogni direzione,<br>
+che viene confrontato con una variabile denominata max_bm<br>
+che sancisce la direzione verso la quale il percorso libero è maggiore e quindi dove effettuare lo spostamento.<br>
+Per gestire il problema di due percorsi uguali, ho creato un vettore di tipo robot, quindi contenente le cordinate<br>
+della posizione nella quale potrebbe spostarsi il robot, nel quale inserisco solo le direzioni superiori alla dimensione massima<br>
+dato che la prima posizione che si confronta, in questo caso l'UP, finirà sempre nel vettore anche se pari a 0, ho dovuto aggiungere<br>
+un altro confronto per aggirare il problema.<br>
+Nell'eventualità ci siano più percorsi uguali, una funzione rand ne seleziona uno dal vettore<br>
+
+*/<br>
+void bet_mov(char a[][100]){<br>
+struct robot cross[4]; //POS 0= UP POS 1= RIGHT POS 2=DOWN POS 3= LEFT<br>
+int r=B.r,c=B.c,i=1,max,max_bm=0,bm=0,d=0;<br>
+
+
+while(a[r-i][c] != '#'){ 			//UP<br>
+						bm++;<br>
+						i++;<br>
+					   }<br>
+
+if(bm>max_bm){<br>
+			  max_bm=bm;<br>
+			  d=0;<br>
+			  cross[d].r=r-1;<br>
+			  cross[d].c=c;<br>
+			  d++;<br>
+			}else{<br>
+				  if(bm==max_bm){<br>
+				  cross[d].r=r-1;<br>
+				  cross[d].c=c;<br>
+				  d++;<br>
+			  					}<br>
+				 }<br>
+				 
+bm=0;<br>
+i=1;<br>
+
+while(a[r][c+i] != '#'){ 			//RIGHT<br>
+					    bm++;<br>
+						i++;<br>
+}<br>
+if(bm>max_bm){<br>
+			  	max_bm=bm;<br>
+				d=0;<br>
+				cross[d].r=r;<br>
+				cross[d].c=c+1;<br>
+				d++;<br>
+}else{<br>
+		if(bm==max_bm){<br>
+						cross[d].r=r;<br>
+						cross[d].c=c+1;<br>
+						d++;<br>
+					  }<br>
+	 }<br>
+	 
+bm=0;<br>
+i=1;<br>
+
+while(a[r+i][c] != '#'){ 			//DOWN<br>
+						 bm++;<br>
+						 i++;<br>
+					   }<br>
+if(bm>max_bm){<br>
+				max_bm=bm;<br>
+				d=0;<br>
+				cross[d].r=r+1;<br>
+				cross[d].c=c;<br>
+				d++;<br>
+			 }else{<br>
+					if(bm==max_bm){<br>
+									cross[d].r=r+1;<br>
+									cross[d].c=c;<br>
+									d++;<br>
+								  }<br>
+				  }<br>
+				  
+bm=0;<br>
+i=1;<br>
+
+while(a[r][c-i] != '#'){ 			//LEFT<br>
+						 bm++;<br>
+						 i++;<br>
+					   }<br>
+if(bm>max_bm){<br>
+				max_bm=bm;<br>
+				d=0;<br>
+				cross[d].r=r;<br>
+				cross[d].c=c-1;<br>
+				d++;<br>
+			 }else{<br>
+					if(bm==max_bm){<br>
+									cross[d].r=r;<br>
+									cross[d].c=c-1;<br>
+									d++;<br>
+								  }<br>
+				  }<br>
+i=rand()%d;<br>
+a[B.r][B.c]='o';<br>
+B=cross[i];<br>
+rnd_hole(a);<br>
+end_hole(a);<br>
+win_game(a);<br>
+stampa_rob(a);<br>
+}<br>
+/*<br>
+Procedura per la gestione del movimento casuale in una delle 4 direzioni libere intorno al robot, anche qui ho creato un vettore nel caso ci sia più<br>
+di una direzione libera, che tramite una funzione rand andrò a scegliere.<br>
+*/<br>
+
+void one_mov(char a[][100]){<br>
+int i,d=0,r=B.r,c=B.c;<br>
+struct robot cross[4];<br>
+if(a[r-1][c] != '#') {	//UP<br>
+
+        				cross[d].r=r-1;<br>
+        				cross[d].c=c;<br>
+        				d++;<br>
+
+                       } <br>
+if(a[r][c+1] != '#') {	//RIGHT <br>
+
+        				cross[d].r=r;<br>
+        				cross[d].c=c+1;<br>
+        				d++;<br>
+					 } <br>
+if(a[r+1][c] != '#') {  //DOWN<br>
+
+        				cross[d].r=r+1;<br>
+        				cross[d].c=c;<br>
+        				d++;<br>
+					 }<br>
+if(a[r][c-1] != '#') {  //LEFT<br>
+        				cross[d].r=r;<br>
+        				cross[d].c=c-1;<br>
+        				d++;<br>
+					 } <br>
+i=rand()%d;<br>
+a[B.r][B.c]='o';<br>
+B=cross[i];<br>
+rnd_hole(a);<br>
+end_hole(a);<br>
+win_game(a);<br>
+stampa_rob(a);<br>
+}<br>
+
+
+/*<br>
+Procedura che controlla se il valore della posizione attuale del robot è pari ad X, se vero mette ad 1 il valore della variabile globale gameover<br>
+*/<br>
+
+void end_hole(char a[][100]){<br>
+if(a[B.r][B.c] == 'X'){<br>
+					   gameover=1;<br>
+			   		  }<br>
+}<br>
+
+/*<br>
+Procedura che controlla se il valore della posizione attuale del robot è pari ad ?, se vero genera casualmente la nuova posizione del robot e la stampa a video<br>
+*/<br>
+void rnd_hole(char a[][100]){<br>
+if(a[B.r][B.c] == '?'){<br>
+						B.r=1+rand()%14;<br>
+						B.c=1+rand()%14;<br>
+						printf("NUOVA POSIZIONE R: %d   C: %d",B.r,B.c);<br>
+					  }<br>
+}<br>
+
+/*<br>
+Procedura che controlla se l'indice di posizione del robot esce dal range del labirinto, quindi potendosi muovere solo negli spazi non occupati<br>
+dal carattere #, ciò sancisce l'uscita dal labirinto, quindi rendo la variabile globale win a 1<br>
+*/<br>
+
+void win_game(char a[][100]){<br>
+	int r=B.r,c=B.c;<br>
+	if(r>15 || c>15 || r<0 || c<0){<br>
+									win=1;<br>
+					  			  }<br>
+}<br>
